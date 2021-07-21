@@ -11,16 +11,6 @@ RuleSet: LaboratoryResultObservation
 
 * status MS
 
-* category MS
-* category 1..1
-* category ^slicing.discriminator.type = #pattern
-* category ^slicing.discriminator.path = "$this"
-* category ^slicing.rules = #open
-* category ^slicing.description = "Slice based on the $this pattern"
-* category contains
-    laboratory 1..1 MS
-* category[laboratory] = ObsCat#laboratory
-
 * code MS
 
 * subject only Reference(VaccinationCredentialPatient)
@@ -32,10 +22,17 @@ RuleSet: LaboratoryResultObservation
 * effective[x] only dateTime or Period
 * effective[x] 1..1
 
+* value[x] 1..1
 * value[x] MS
-* value[x] ^comment = "Issuers SHALL provide a computable representation of laboratory results if at all possible. If the Issuer is unable to accurately translate laboratory results into a computable form, it is unlikely a Verifier will be able to interpret the results. Issuers SHALL make every possible effort to resolve non-computable results prior to issuing credentials. In rare cases when this is not possible, Issuers MAY populate `valueCodeableConcept.text` with a free text result. Populating `valueCodeableConcept.text` will result in a warning when validating against the Allowable Data profile and an error with the Data Minimization profile."
-* valueCodeableConcept.text ^short = "String representation of results when a computable representation is not possible"
-* valueCodeableConcept.text ^comment = "See comment for `value[x]`."
+* value[x] only CodeableConcept or Quantity or string
+* value[x] ^comment = "Issuers SHALL provide a computable representation of laboratory results if at all possible. If the Issuer is unable to accurately translate laboratory results into a computable form, it is unlikely a Verifier will be able to interpret the results. Issuers SHALL make every possible effort to resolve non-computable results prior to issuing credentials. In rare cases when this is not possible, Issuers MAY populate `valueString` with a free text result."
+* valueString ^short = "String representation of results; used ONLY when a computable representation is not possible"
+* valueString obeys vc-should-be-under-20-chars
+* valueQuantity obeys vc-observation-quantity-should-have-range
+
+* referenceRange MS
+* referenceRange ^comment = "Issuers SHOULD provide a reference range for only quantitative lab results to allow recipients to correctly interpret the results."
+* referenceRange obeys vc-observation-range-only-quantity
 
 * performer only Reference(Organization)
 * performer MS
@@ -45,13 +42,12 @@ RuleSet: LaboratoryResultObservation
 
 // VCI-specific (not from US Core)
 * insert id-should-not-be-populated()
-* category[laboratory].coding MS
-* category[laboratory].coding.code MS
-* category[laboratory].coding.system MS
+
+* status obeys vc-observation-status-shall-be-complete
 
 * meta.security 0..1
-* meta.security from IdentityAssuranceLevelValueSet (required)
-* meta.security ^short = "Limited security label to convey identity level of assurance for patient referenced by this resource. Coding SHOULD include only code."
+* meta.security from identity-assurance-level (required)
+* meta.security ^short = "Limited security label to convey identity level of assurance for patient referenced by this resource."
 * meta.security ^definition = "Limited security metadata which conveys an attestation that the lab testing provider performed a certain level of identity verification at the time of service. If known, Issuers SHALL attest to the highest level that applies."
 * meta.security MS
 
@@ -65,6 +61,7 @@ RuleSet: LaboratoryResultObservation
 * performer.display MS
 * performer.display 1..1
 * performer.display ^definition = "Organization which was responsible for the laboratory test result. Issuers SHOULD provide display name only. This is provided to Verifiers in case of invalid data in the credential, to support manual validation. This is not expected to be a computable Organization identifier."
+* performer.display obeys vc-should-be-under-30-chars
 
 
 * insert reference-to-absolute-uri(subject)
@@ -81,16 +78,11 @@ previous infection status."
 * insert LaboratoryResultObservation
 
 // This binding can be required because implementers can fall back to InfectiousDiseaseLaboratoryResultObservation
-* code from Covid19LaboratoryTestValueSet (required)
-* code obeys covid19-laboratory-test-code-invariant
-* code ^definition = "If the Covid19LaboratoryTestValueSet does not contain a code for the lab test, use the InfectiousDiseaseLaboratoryResultObservation profile."
+* code from covid-lab-tests-loinc-vsac (required)
+* code ^definition = "If an appropriate code is not found in the bound value set, use the InfectiousDiseaseLaboratoryResultObservation profile instead, which does not have a required binding."
 
-* value[x] 1..1
-* value[x] only CodeableConcept or Quantity
-* valueCodeableConcept from LaboratoryResultValueSet (extensible)
-* valueCodeableConcept obeys laboratory-result-invariant
-* valueCodeableConcept.text obeys should-be-omitted
-
+* valueCodeableConcept from qualitative-lab-result-findings (required)
+* code ^definition = "If an appropriate code is not found in the bound value set, use the InfectiousDiseaseLaboratoryResultObservation profile instead, which does not have a required binding."
 /*
 TODO: Test using `device` rather than `method`, like so:
 
@@ -130,14 +122,7 @@ RuleSet: LaboratoryResultObservationDM
 * modifierExtension 0..0
 * basedOn 0..0
 * partOf 0..0
-* category[laboratory].extension 0..0
-* category[laboratory].id 0..0
-* category[laboratory].text 0..0
-* category[laboratory].coding.id 0..0
-* category[laboratory].coding.version 0..0
-* category[laboratory].coding.display 0..0
-* category[laboratory].coding.userSelected 0..0
-* category[laboratory].coding.extension 0..0
+* category 0..0
 * encounter 0..0
 * focus 0..0
 * issued 0..0
@@ -148,7 +133,6 @@ RuleSet: LaboratoryResultObservationDM
 * method 0..0
 * specimen 0..0
 * device 0..0
-* referenceRange 0..0
 * hasMember 0..0
 * derivedFrom 0..0
 * component 0..0
@@ -158,8 +142,7 @@ RuleSet: LaboratoryResultObservationDM
 * performer.type 0..0
 * performer.identifier 0..0
 * valueCodeableConcept.text 0..0
-
-* category ^slicing.rules = #closed
+* valueQuantity.id 0..0
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -172,10 +155,6 @@ Description:    "Profile for reporting COVID-19-related laboratory results indic
 previous infection status. Only elements necessary for Verifiers can be populated."
 
 * insert LaboratoryResultObservationDM
-
-// Required in DM profile to provide implementers with sterner warning when straying from the expected value sets
-* code from Covid19LaboratoryTestValueSet (required)
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -190,12 +169,11 @@ Description:    "Profile for reporting laboratory results indicating current or 
 // Show an error if the code is part of a value set used in a disease-specific profile. If that's
 // the case, there's no reason to use this generic profile -- the disease-specific profile should
 // be used instead.
-* code obeys not-specified-laboratory-test-code-invariant
+* code from http://hl7.org/fhir/ValueSet/observation-codes (required) // All LOINCs - https://www.hl7.org/fhir/valueset-observation-codes.html
+* code ^short = "LOINC identifying the lab test"
+* code obeys vc-shall-not-be-a-covid-loinc
 
-* value[x] 1..1
-* value[x] only CodeableConcept or Quantity
-* valueCodeableConcept from LaboratoryResultValueSet (extensible)
-* valueCodeableConcept obeys laboratory-result-invariant
+* valueCodeableConcept from lab-result-findings (required)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 

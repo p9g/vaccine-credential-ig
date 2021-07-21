@@ -39,7 +39,7 @@ See the following section for information on how to validate against the DM prof
 
 Additionally:
 
-- Implementers SHOULD NOT populate `Resource.id`, `Resource.meta`, or `Resource.text` elements.
+- Implementers SHOULD NOT populate `Resource.id` or `Resource.text` elements. `Resource.meta` SHOULD NOT be populated, except for `Resource.meta.security` in the vaccination and laboratory test results profiles.
 
 - Implementers SHALL use `resource:0` syntax for IDs and references.
     - Implementers SHALL populate `Bundle.entry.fullUrl` elements with short resource-scheme URIs (e.g., `{"fullUrl": "resource:0}`).
@@ -61,21 +61,14 @@ Additionally:
 
 Bundles produced by Issuers SHALL validate against [VaccinationCredentialBundle] or [Covid19LaboratoryBundle]/[InfectiousDiseaseLaboratoryBundle] without errors, and SHOULD validate against [VaccinationCredentialBundleDM] or [Covid19LaboratoryBundleDM]/[InfectiousDiseaseLaboratoryBundleDM] without errors.
 
-If an Issuer wishes to include both vaccination and laboratory test results in the same Bundle resource, this resource SHALL validate against both [VaccinationCredentialBundle] and [VaccinationCredentialLaboratoryBundle], and SHOULD validate against their DM counterparts.
-
 ### Validation
 
-<div class="alert alert-danger" role="alert" markdown="1">
-<p style="font-size: 2rem;"><strong>Warning:</strong> FHIR validation currently does not work</p>
+<div class="alert alert-warning" role="alert" markdown="1">
+<p style="font-size: 2rem;"><strong>Note:</strong> FHIR Validator may generate warnings for valid resources</p>
 
-The [FHIR Validator](https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar) currently generates a number of spurious errors when validating resources that are in fact valid. This is due to the following issues:
+The [FHIR Validator](https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar) may show some warnings when validating resources that are in fact valid. This is due to the following issues:
 
-1. For [data minimization](#data-minimization) reasons, we use absolute URIs in `resource:#` format within our Bundles. [We recently received clarification that this is supported in FHIR R4](https://jira.hl7.org/browse/FHIR-31422), but the FHIR Validator does not fully support this yet.
-1. We do not include `id` elements in our resources for [data minimization](#data-minimization) reasons. This element is [not required](https://www.hl7.org/fhir/resource.html) as the cardinality is `0..1` (though this is only strictly allowed for sending resources to a server for `create` operations). The FHIR Validator requires `id` to be populated for all resources.
-1. The terminology server used by the FHIR Validator (`tx.fhir.org`) does not support a number of value sets that we use, and some of the value sets that are supported our out of date (like [CVX](http://hl7.org/fhir/R4/valueset-vaccine-code.html)). This causes errors both in validating codes and Bundles that slice based on profiles with required value set bindings.
-1. You will see warnings related to `meta.security` when validating that say `A code with no system has no defined meaning. A system should be provided`. This cannot be suppressed, but can be safely ignored.
-
-We are currently working on providing a functional validation workflow for implementers of this IG. This will be announced on the SMART Health Cards stream on [chat.fhir.org](https://chat.fhir.org) when it becomes available; if you do not have access please email [vci-ig@mitre.org](mailto:vci-ig@mitre.org) to be added.
+1. The IAL codes from <https://smarthealth.cards/ial> have not been added to the FHIR security labels value set, which causes a warning like `The Coding provided (https://smarthealth.cards/ial#IAL1.2) is not in the value set http://hl7.org/fhir/ValueSet/security-labels, and a code should come from this value set unless it has no suitable code (note that the validator cannot judge what is suitable).` This can be safely ignored.
 </div>
 
 To validate a specific resource against a profile, the [FHIR Validator](https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar) can be used, where [package.tgz is downloaded from the IG](package.tgz):
